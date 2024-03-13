@@ -3,6 +3,7 @@
 const path = require('path');
 const execa = require('execa');
 const yargs = require('yargs');
+const fs = require('fs');
 
 process.env.NODE_ENV = 'test';
 
@@ -50,6 +51,17 @@ const databases = {
     },
     useNullAsDefault: true,
   },
+  libsql: {
+    client: 'libsql',
+    connection: {
+      filename: './tmp/data.db',
+      options: {
+        syncUrl: process.env["TURSO_DATABASE_URL"],
+        authToken: process.env["TURSO_AUTH_TOKEN"],
+      },
+    },
+    useNullAsDefault: true,
+  }
 };
 
 const jestCmd = 'jest --config jest.config.api.js --verbose --runInBand --forceExit'.split(' ');
@@ -73,6 +85,8 @@ const main = async ({ database, generateApp }, args) => {
     if (generateApp) {
       await cleanTestApp(appPath);
       await generateTestApp({ appPath, database });
+
+      fs.copyFileSync(path.join(__dirname, '../helpers/database-config.js'), path.join(appPath, 'config/database.js'));
     }
 
     await runAllTests(args).catch(() => {

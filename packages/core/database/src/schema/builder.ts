@@ -33,18 +33,22 @@ export default (db: Database) => {
      * @param {KnexInstance} trx
      * @param {Table[]} tables
      */
-    async createTables(tables: Table[], trx: Knex.Transaction) {
+    async createTables(tables: Table[]) {
       for (const table of tables) {
-        debug(`Creating table: ${table.name}`);
-        const schemaBuilder = this.getSchemaBuilder(trx);
-        await helpers.createTable(schemaBuilder, table);
+        await db.connection.transaction(async (trx) => {
+          debug(`Creating table: ${table.name}`);
+          const schemaBuilder = this.getSchemaBuilder(trx);
+          await helpers.createTable(schemaBuilder, table);
+        });
       }
 
       // create FKs once all the tables exist
       for (const table of tables) {
-        debug(`Creating table foreign keys: ${table.name}`);
-        const schemaBuilder = this.getSchemaBuilder(trx);
-        await helpers.createTableForeignKeys(schemaBuilder, table);
+        await db.connection.transaction(async (trx) => {
+          debug(`Creating table foreign keys: ${table.name}`);
+          const schemaBuilder = this.getSchemaBuilder(trx);
+          await helpers.createTableForeignKeys(schemaBuilder, table);
+        });
       }
     },
     /**
@@ -73,9 +77,10 @@ export default (db: Database) => {
       const forceMigration = db.config.settings?.forceMigration;
 
       await db.dialect.startSchemaUpdate();
-      await db.connection.transaction(async (trx) => {
-        await this.createTables(schemaDiff.tables.added, trx);
 
+      await this.createTables(schemaDiff.tables.added);
+
+      await db.connection.transaction(async (trx) => {
         if (forceMigration) {
           // drop all delete table foreign keys then delete the tables
           for (const table of schemaDiff.tables.removed) {

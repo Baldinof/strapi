@@ -1,0 +1,23 @@
+#!/bin/bash
+
+set -euo pipefail
+
+export JWT_SECRET='aSecret'
+export ENV_PATH=test-apps/api/.env
+export DATABASE_CLIENT=libsql
+export RUST_BACKTRACE=full
+
+TURSO_DB_NAME="test-strapi-$(uuidgen | awk '{split($0,a,"-"); print tolower(a[1])}')"
+
+echo Creating turso database "$TURSO_DB_NAME"
+
+
+turso db create "$TURSO_DB_NAME"
+
+TURSO_DATABASE_URL=$(turso db show "$TURSO_DB_NAME" --url)
+export TURSO_DATABASE_URL
+
+TURSO_AUTH_TOKEN="$(turso db tokens create "$TURSO_DB_NAME")"
+export TURSO_AUTH_TOKEN
+
+node test/scripts/run-api-tests.js --bail

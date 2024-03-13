@@ -4,6 +4,7 @@ process.env.NODE_ENV = 'test';
 
 const yargs = require('yargs');
 const { cleanTestApp, generateTestApp, runTestApp } = require('../helpers/test-app');
+const { copyFileSync } = require('fs-extra');
 
 const databases = {
   postgres: {
@@ -34,6 +35,17 @@ const databases = {
     },
     useNullAsDefault: true,
   },
+  libsql: {
+    client: 'libsql',
+    connection: {
+      filename: './tmp/data.db',
+      options: {
+        syncUrl: process.env["TURSO_DATABASE_URL"],
+        authToken: process.env["TURSO_AUTH_TOKEN"],
+      },
+    },
+    useNullAsDefault: true,
+  }
 };
 
 const main = async (database, appPath, opts) => {
